@@ -2,6 +2,8 @@
 
 #include <string>
 #include <filesystem>
+#include <utility>
+#include <vector>
 #include "export.hpp"
 
 BEGIN_FFMPEG_NAMESPACE_V
@@ -320,6 +322,47 @@ struct RenderSettings {
     uint32_t m_height = 1080;
     uint16_t m_fps = 60;
     std::filesystem::path m_outputFile;
+};
+
+struct FFmpegOption {
+    std::string key;
+    std::string value;
+};
+
+struct RenderSettingsCml : RenderSettings {
+    std::string m_encoderArgs;
+    std::string m_formatArgs;
+    std::string m_videoFilters;
+    std::vector<FFmpegOption> m_codecOptions;
+    std::vector<FFmpegOption> m_formatOptions;
+
+    RenderSettingsCml() = default;
+    RenderSettingsCml(RenderSettings const& base) : RenderSettings(base) {}
+
+    RenderSettingsCml& encoderArgs(std::string value) {
+        m_encoderArgs = std::move(value);
+        return *this;
+    }
+
+    RenderSettingsCml& formatArgs(std::string value) {
+        m_formatArgs = std::move(value);
+        return *this;
+    }
+
+    RenderSettingsCml& videoFilters(std::string value) {
+        m_videoFilters = std::move(value);
+        return *this;
+    }
+
+    RenderSettingsCml& codecOption(std::string key, std::string value) {
+        m_codecOptions.push_back({std::move(key), std::move(value)});
+        return *this;
+    }
+
+    RenderSettingsCml& formatOption(std::string key, std::string value) {
+        m_formatOptions.push_back({std::move(key), std::move(value)});
+        return *this;
+    }
 };
 
 END_FFMPEG_NAMESPACE_V

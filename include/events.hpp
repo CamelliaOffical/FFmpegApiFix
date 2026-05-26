@@ -6,10 +6,11 @@
 
 namespace ffmpeg::events {
 namespace impl {
-    constexpr size_t VTABLE_VERSION = 1;
+    constexpr size_t VTABLE_VERSION = 2;
     using CreateRecorder_t = void*(*)();
     using DeleteRecorder_t = void(*)(void*);
     using InitRecorder_t = geode::Result<>(*)(void*, const RenderSettings&);
+    using InitRecorderCml_t = geode::Result<>(*)(void*, const RenderSettingsCml&);
     using StopRecorder_t = void(*)(void*);
     using WriteFrame_t = geode::Result<>(*)(void*, std::span<uint8_t const>);
     using GetAvailableCodecs_t = std::vector<std::string>(*)();
@@ -25,6 +26,7 @@ namespace impl {
         GetAvailableCodecs_t getAvailableCodecs = nullptr;
         MixVideoAudio_t mixVideoAudio = nullptr;
         MixVideoRaw_t mixVideoRaw = nullptr;
+        InitRecorderCml_t initRecorderCml = nullptr;
     };
 
     struct FetchVTableEvent : geode::Event<FetchVTableEvent, bool(VTable&, size_t)> {
@@ -75,7 +77,29 @@ public:
      * @return true if initialization is successful, false otherwise.
      */
     geode::Result<> init(RenderSettings const& settings) {
+        if (!m_ptr) {
+            return geode::Err("FFmpeg API is not available.");
+        }
         auto& vtable = impl::getVTable();
+        if (!vtable.initRecorder) {
+            return geode::Err("FFmpeg API is not available.");
+        }
+        return vtable.initRecorder(m_ptr, settings);
+    }
+
+    geode::Result<> init(RenderSettingsCml const& settings) {
+        if (!m_ptr) {
+            return geode::Err("FFmpeg API is not available.");
+        }
+        auto& vtable = impl::getVTable();
+        if (vtable.initRecorderCml) {
+            return vtable.initRecorderCml(m_ptr, settings);
+        }
+        if (!settings.m_encoderArgs.empty() || !settings.m_formatArgs.empty() ||
+            !settings.m_videoFilters.empty() || !settings.m_codecOptions.empty() ||
+            !settings.m_formatOptions.empty()) {
+            return geode::Err("Installed FFmpeg API is too old for extra args.");
+        }
         if (!vtable.initRecorder) {
             return geode::Err("FFmpeg API is not available.");
         }
@@ -88,6 +112,9 @@ public:
      * releases allocated resources, and properly closes the output file.
      */
     void stop() {
+        if (!m_ptr) {
+            return;
+        }
         auto& vtable = impl::getVTable();
         if (vtable.stopRecorder) {
             vtable.stopRecorder(m_ptr);
@@ -108,6 +135,9 @@ public:
      * @warning Ensure that the frameData size matches the expected dimensions of the frame.
      */
     geode::Result<> writeFrame(std::span<uint8_t const> frameData) {
+        if (!m_ptr) {
+            return geode::Err("FFmpeg API is not available.");
+        }
         auto& vtable = impl::getVTable();
         if (!vtable.writeFrame) {
             return geode::Err("FFmpeg API is not available.");

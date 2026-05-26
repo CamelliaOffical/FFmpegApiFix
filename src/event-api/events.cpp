@@ -13,6 +13,11 @@ $execute {
         vtable.initRecorder = +[](void* ptr, const ffmpeg::RenderSettings& settings) -> Result<> {
             return ((ffmpeg::Recorder*)ptr)->init(settings);
         };
+        if (version >= 2) {
+            vtable.initRecorderCml = +[](void* ptr, const ffmpeg::RenderSettingsCml& settings) -> Result<> {
+                return ((ffmpeg::Recorder*)ptr)->init(settings);
+            };
+        }
         vtable.stopRecorder = +[](void* ptr) { ((ffmpeg::Recorder*)ptr)->stop(); };
         vtable.writeFrame = +[](void* ptr, std::span<uint8_t const> frameData) -> Result<> {
             return ((ffmpeg::Recorder*)ptr)->writeFrame(frameData);

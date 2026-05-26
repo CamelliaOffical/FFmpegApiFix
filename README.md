@@ -75,6 +75,38 @@ void video() {
 
 </details>
 
+<details>
+  <summary>Extended render settings</summary>
+
+```cpp
+#include <events.hpp>
+
+void video() {
+    ffmpeg::events::Recorder recorder;
+
+    ffmpeg::RenderSettingsCml settings;
+    settings.m_pixelFormat = ffmpeg::PixelFormat::RGB0;
+    settings.m_codec = "libx264";
+    settings.m_width = 1920;
+    settings.m_height = 1080;
+    settings.m_fps = 60;
+    settings.m_outputFile = "output_video.mp4";
+
+    settings
+        .encoderArgs("-preset veryfast -crf 18 -pix_fmt yuv420p")
+        .formatArgs("-movflags +faststart")
+        .videoFilters("scale=1920:1080");
+
+    recorder.init(settings);
+}
+```
+
+`encoderArgs` accepts common video arguments like `-c:v`, `-b:v`, `-pix_fmt`, `-vf`, `-crf`, `-preset`, and `-profile:v`.
+`formatArgs` is for muxer/output arguments like `-movflags +faststart`.
+Typed options are also available through `codecOption(key, value)` and `formatOption(key, value)`.
+
+</details>
+
 ### Mix audio
 
 <details>

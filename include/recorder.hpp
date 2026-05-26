@@ -41,14 +41,15 @@ private:
         AVFilterGraph* m_filterGraph = nullptr;
         AVFilterContext* m_buffersrcCtx = nullptr;
         AVFilterContext* m_buffersinkCtx = nullptr;
-        AVFilterContext* m_colorspaceCtx = nullptr;
-        AVFilterContext* m_vflipCtx = nullptr;
 
         size_t m_frameCount = 0;
         size_t m_expectedSize = 0;
+        bool m_headerWritten = false;
         bool m_init = false;
 
+        ~Impl() { stop(); }
         geode::Result<> init(const RenderSettings& settings);
+        geode::Result<> init(const RenderSettingsCml& settings);
         void stop();
         geode::Result<> writeFrame(std::span<uint8_t const> frameData);
         geode::Result<> filterFrame(AVFrame* inputFrame, AVFrame* outputFrame);
@@ -73,13 +74,21 @@ public:
         return m_impl->init(settings);
     }
 
+    geode::Result<> init(const RenderSettingsCml& settings) {
+        m_impl = std::make_unique<Impl>();
+        return m_impl->init(settings);
+    }
+
     /**
      * @brief Stops the recording process and finalizes the output file.
      *
      * This function ensures that all buffered frames are written to the output file,
      * releases allocated resources, and properly closes the output file.
      */
-    void stop() const { m_impl->stop(); }
+    void stop() const {
+        if (m_impl)
+            m_impl->stop();
+    }
 
     /**
      * @brief Writes a single video frame to the output.
@@ -95,6 +104,8 @@ public:
      * @warning Ensure that the frameData size matches the expected dimensions of the frame.
      */
     geode::Result<> writeFrame(std::span<uint8_t const> frameData) const {
+        if (!m_impl)
+            return geode::Err("Recorder is not initialized.");
         return m_impl->writeFrame(frameData);
     }
 
@@ -110,6 +121,8 @@ public:
 
 private:
     geode::Result<> filterFrame(AVFrame* inputFrame, AVFrame* outputFrame) const {
+        if (!m_impl)
+            return geode::Err("Recorder is not initialized.");
         return m_impl->filterFrame(inputFrame, outputFrame);
     }
 };
